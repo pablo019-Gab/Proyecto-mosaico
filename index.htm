@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CATCH — Interactive Concept Prototype</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+--lime: #B8FF00;
+--lime-glow: rgba(184, 255, 0, 0.45);
+--purple: #A020F0;
+--purple-dark: #4B0082;
+--purple-glow: rgba(160, 32, 240, 0.45);
+--bg-dark: #09090D;
+--card-bg: rgba(24, 24, 34, 0.72);
+--glass-border: rgba(255, 255, 255, 0.12);
+--text-main: #FFFFFF;
+--text-muted: #A1A1AA;
+}
+
+* {
+box-sizing: border-box;
+margin: 0;
+padding: 0;
+font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+user-select: none;
+}
+
+body {
+background: radial-gradient(circle at 50% 30%, #171226 0%, #050507 70%);
+min-height: 100vh;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+color: var(--text-main);
+overflow: hidden;
+}
+
+/* Controles externos discretos para grabación */
+.studio-bar {
+position: fixed;
+top: 16px;
+right: 20px;
+display: flex;
+gap: 8px;
+z-index: 1000;
+opacity: 0.35;
+transition: opacity 0.3s;
+}
+.studio-bar:hover { opacity: 1; }
+.studio-btn {
+background: rgba(255,255,255,0.08);
+border: 1px solid rgba(255,255,255,0.15);
+color: #fff;
+padding: 6px 12px;
+border-radius: 20px;
+font-size: 11px;
+cursor: pointer;
+backdrop-filter: blur(10px);
+}
+.studio-btn:hover { background: var(--lime); color: #000; font-weight: 700; }
+
+/* Marco del Smartphone */
+.phone-chassis {
+width: 375px;
+height: 812px;
+background: #000;
+border-radius: 52px;
+padding: 12px;
+box-shadow:
+0 0 0 2px #2c2c35,
+0 0 0 5px #111116,
+0 30px 80px rgba(0, 0, 0, 0.85),
+0 0 60px rgba(160, 32, 240, 0.18);
+position: relative;
+transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.phone-chassis.tilted {
+transform: perspective(1200px) rotateY(-12deg) rotateX(6deg) scale(0.96);
+}
+
+.phone-screen {
+width: 100%;
+height: 100%;
+background: var(--bg-dark);
+border-radius: 41px;
+overflow: hidden;
+position: relative;
+display: flex;
+flex-direction: column;
+}
+
+/* Dynamic Island & Status Bar */
+.status-bar {
+height: 44px;
+padding: 0 24px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+font-size: 12px;
+font-weight: 600;
+z-index: 100;
+cursor: pointer;
+position: relative;
+}
+.dynamic-island {
+width: 110px;
+height: 28px;
+background: #000;
+border-radius: 20px;
+position: absolute;
+left: 50%;
+transform: translateX(-50%);
+top: 8px;
+display: flex;
+align-items: center;
+justify-content: center;
+transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+border: 1px solid rgba(255,255,255,0.08);
+}
+.dynamic-island.active {
+width: 240px;
+height: 36px;
+border-color: var(--lime);
+box-shadow: 0 0 20px var(--lime-glow);
+}
+.island-text {
+font-size: 11px;
+color: var(--lime);
+font-weight: 700;
+opacity: 0;
+transition: opacity 0.2s;
+}
+.dynamic-island.active .island-text { opacity: 1; }
+
+/* Vistas / Pantallas */
+.view {
+position: absolute;
+inset: 0;
+padding-top: 48px;
+display: flex;
+flex-direction: column;
+opacity: 0;
+pointer-events: none;
+transform: scale(0.96);
+transition: all 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.view.active {
+opacity: 1;
+pointer-events: auto;
+transform: scale(1);
+}
+
+/* Logo SVG CATCH */
+.catch-eye {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+}
+
+/* 1. PANTALLA DE INICIO (HOME OS) */
+.home-os {
+background: linear-gradient(160deg, #2d144d 0%, #12091f 55%, #09090d 100%);
+padding: 60px 24px 30px;
+justify-content: space-between;
+}
+.os-clock {
+text-align: center;
+margin-top: 10px;
+}
+.os-clock h1 { font-size: 56px; font-weight: 800; letter-spacing: -2px; }
+.os-clock p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+.os-hint {
+background: rgba(255,255,255,0.08);
+border: 1px solid var(--glass-border);
+padding: 8px 14px;
+border-radius: 20px;
+font-size: 11px;
+text-align: center;
+color: #d4d4d8;
+margin: 12px auto 0;
+backdrop-filter: blur(8px);
+cursor: pointer;
+}
+.app-grid {
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+gap: 18px;
+margin-bottom: 30px;
+}
+.app-icon-wrap {
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 6px;
+cursor: pointer;
+transition: transform 0.2s;
+}
+.app-icon-wrap:active { transform: scale(0.9); }
+.app-icon {
+width: 58px;
+height: 58px;
+border-radius: 16px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-weight: 800;
+font-size: 20px;
+box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+}
+.app-label { font-size: 11px; color: #e4e4e7; font-weight: 500; }
+.icon-catch {
+background: linear-gradient(135deg, var(--lime), #84cc16);
+box-shadow: 0 0 25px var(--lime-glow);
+animation: pulse-lime 2.2s infinite;
+}
+@keyframes pulse-lime {
+0%, 100% { box-shadow: 0 0 15px var(--lime-glow); }
+50% { box-shadow: 0 0 32px rgba(184, 255, 0, 0.8); }
+}
+
+/* 2. CENTRO DE CONTROL + MENÚ RADIAL */
+.control-center {
+background: rgba(12, 12, 18, 0.92);
+backdrop-filter: blur(25px);
+padding: 60px 22px 30px;
+z-index: 50;
+}
+.cc-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 24px;
+}
+.cc-grid {
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+gap: 14px;
+}
+.cc-tile {
+aspect-ratio: 1;
+background: rgba(255,255,255,0.07);
+border: 1px solid var(--glass-border);
+border-radius: 20px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 20px;
+color: #fff;
+cursor: pointer;
+transition: all 0.25s;
+}
+.cc-tile.active-blue { background: #3b82f6; border-color: #60a5fa; }
+.cc-tile.catch-trigger {
+background: var(--lime);
+color: #000;
+box-shadow: 0 0 25px var(--lime-glow);
+position: relative;
+}
+
+/* Menú Radial Flotante */
+.radial-stage {
+flex: 1;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+position: relative;
+}
+.radial-hub {
+width: 84px;
+height: 84px;
+border-radius: 50%;
+background: var(--lime);
+display: flex;
+align-items: center;
+justify-content: center;
+box-shadow: 0 0 40px var(--lime-glow);
+z-index: 10;
+cursor: pointer;
+transition: transform 0.3s;
+}
+.radial-hub:hover { transform: scale(1.06); }
+.radial-option {
+position: absolute;
+width: 62px;
+height: 62px;
+border-radius: 50%;
+background: linear-gradient(135deg, var(--purple), #6b21a8);
+border: 2px solid var(--lime);
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+color: #fff;
+font-size: 10px;
+font-weight: 700;
+gap: 3px;
+cursor: pointer;
+opacity: 0;
+transform: translate(0, 0) scale(0.4);
+transition: all 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+}
+.radial-stage.open .opt-1 { opacity: 1; transform: translate(-85px, -65px) scale(1); }
+.radial-stage.open .opt-2 { opacity: 1; transform: translate(0px, -110px) scale(1); }
+.radial-stage.open .opt-3 { opacity: 1; transform: translate(85px, -65px) scale(1); }
+.radial-option:hover { background: var(--lime); color: #000; }
+
+/* 3. SPLASH SCREEN */
+.splash-view {
+background: radial-gradient(circle at center, var(--lime) 0%, var(--purple) 65%, #09090d 100%);
+align-items: center;
+justify-content: center;
+z-index: 60;
+}
+.splash-logo {
+text-align: center;
+animation: zoomInLogo 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes zoomInLogo {
+from { transform: scale(0.5); opacity: 0; }
+to { transform: scale(1); opacity: 1; }
+}
+
+/* 4. ESCANEO IA (TIKTOK / CLIP + ONDAS + RADAR) */
+.scan-view {
+background: #000;
+padding-top: 0;
+}
+.video-feed-mock {
+position: relative;
+width: 100%;
+height: 100%;
+background: linear-gradient(180deg, rgba(160,32,240,0.25) 0%, rgba(9,9,13,0.4) 50%, rgba(9,9,13,0.95) 100%),
+url('https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=600&q=80') center/cover;
+display: flex;
+flex-direction: column;
+justify-content: space-between;
+padding: 56px 20px 28px;
+}
+.scan-overlay {
+flex: 1;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+gap: 20px;
+}
+/* Malla geométrica de similitudes */
+.radar-box {
+width: 190px;
+height: 190px;
+border-radius: 50%;
+border: 2px dashed var(--lime);
+position: relative;
+display: flex;
+align-items: center;
+justify-content: center;
+animation: spinSlow 8s linear infinite;
+box-shadow: inset 0 0 30px var(--purple-glow), 0 0 30px var(--lime-glow);
+}
+.radar-box::before {
+content: '';
+position: absolute;
+width: 130px;
+height: 130px;
+border-radius: 50%;
+border: 2px solid var(--purple);
+}
+@keyframes spinSlow { to { transform: rotate(360deg); } }
+
+/* Ondas de audio animadas */
+.waveform {
+display: flex;
+align-items: center;
+gap: 5px;
+height: 48px;
+}
+.wave-bar {
+width: 5px;
+height: 14px;
+background: linear-gradient(to top, var(--purple), var(--lime));
+border-radius: 4px;
+animation: eq 0.7s ease-in-out infinite alternate;
+}
+.wave-bar:nth-child(2) { animation-delay: 0.1s; }
+.wave-bar:nth-child(3) { animation-delay: 0.25s; }
+.wave-bar:nth-child(4) { animation-delay: 0.4s; }
+.wave-bar:nth-child(5) { animation-delay: 0.15s; }
+.wave-bar:nth-child(6) { animation-delay: 0.3s; }
+.wave-bar:nth-child(7) { animation-delay: 0.05s; }
+@keyframes eq {
+from { height: 10px; }
+to { height: 46px; }
+}
+
+/* Tarjeta de Match (Resultado) */
+.match-card {
+background: rgba(18, 14, 28, 0.92);
+backdrop-filter: blur(20px);
+border: 1.5px solid var(--lime);
+border-radius: 26px;
+padding: 18px;
+box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px var(--lime-glow);
+transform: translateY(120%);
+opacity: 0;
+transition: all 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.match-card.revealed {
+transform: translateY(0);
+opacity: 1;
+}
+.match-row {
+display: flex;
+align-items: center;
+gap: 12px;
+margin-bottom: 14px;
+}
+.match-badge {
+width: 46px;
+height: 46px;
+border-radius: 50%;
+background: var(--lime);
+display: flex;
+align-items: center;
+justify-content: center;
+flex-shrink: 0;
+}
+.cta-rent {
+width: 100%;
+background: var(--lime);
+color: #000;
+border: none;
+border-radius: 16px;
+padding: 12px 16px;
+font-weight: 800;
+font-size: 14px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+cursor: pointer;
+transition: transform 0.2s;
+}
+.cta-rent:hover { transform: scale(1.02); }
+.platform-pill {
+background: #000;
+color: #fff;
+padding: 4px 10px;
+border-radius: 10px;
+font-size: 11px;
+font-weight: 800;
+}
+
+/* 5. APP PRINCIPAL (BENTO GRID & SUBPANTALLAS) */
+.app-shell {
+padding: 52px 18px 20px;
+background: radial-gradient(circle at top right, rgba(160,32,240,0.18), transparent 50%), var(--bg-dark);
+overflow-y: auto;
+}
+.app-topbar {
+display: flex;
+align-items: center;
+justify-content: space-between;
+margin-bottom: 18px;
+}
+.icon-btn {
+width: 36px;
+height: 36px;
+border-radius: 12px;
+background: rgba(255,255,255,0.06);
+border: 1px solid var(--glass-border);
+color: var(--lime);
+display: flex;
+align-items: center;
+justify-content: center;
+cursor: pointer;
+font-weight: 700;
+}
+.bento-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 12px;
+margin-bottom: 16px;
+}
+.bento-card {
+height: 132px;
+border-radius: 24px;
+padding: 16px;
+display: flex;
+flex-direction: column;
+justify-content: space-between;
+position: relative;
+overflow: hidden;
+cursor: pointer;
+border: 1px solid rgba(255,255,255,0.14);
+transition: transform 0.25s, box-shadow 0.25s;
+}
+.bento-card:hover {
+transform: translateY(-3px);
+box-shadow: 0 12px 28px rgba(160, 32, 240, 0.3);
+border-color: var(--lime);
+}
+.bento-digipak {
+background: radial-gradient(circle at 30% 30%, rgba(160,32,240,0.65), rgba(184,255,0,0.35) 85%, #161622);
+}
+.bento-alianzas {
+background: radial-gradient(circle at 70% 30%, rgba(184,255,0,0.45), rgba(160,32,240,0.65) 80%, #161622);
+}
+.bento-busquedas {
+background: radial-gradient(circle at 50% 50%, rgba(160,32,240,0.75), rgba(30,20,50,0.9));
+}
+.bento-descubre {
+background: linear-gradient(135deg, rgba(160,32,240,0.55), rgba(184,255,0,0.55));
+}
+.bento-title {
+font-size: 18px;
+font-weight: 800;
+letter-spacing: -0.4px;
+text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+.mini-logos {
+display: flex;
+gap: 4px;
+}
+.mini-dot {
+width: 22px;
+height: 22px;
+border-radius: 50%;
+background: #000;
+border: 1px solid rgba(255,255,255,0.2);
+font-size: 9px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-weight: 800;
+}
+
+/* Botones inferiores de acción rápida */
+.quick-actions {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 10px;
+margin-bottom: 14px;
+}
+.qa-pill {
+background: var(--card-bg);
+border: 1px solid var(--glass-border);
+border-radius: 16px;
+padding: 12px 14px;
+display: flex;
+align-items: center;
+gap: 10px;
+font-size: 13px;
+font-weight: 600;
+cursor: pointer;
+transition: all 0.2s;
+}
+.qa-pill:hover { border-color: var(--lime); }
+.qa-pill.catch-main-btn {
+background: var(--lime);
+color: #000;
+justify-content: center;
+font-weight: 800;
+box-shadow: 0 6px 20px var(--lime-glow);
+}
+
+.search-bar {
+background: rgba(255,255,255,0.06);
+border: 1.5px solid var(--purple);
+border-radius: 18px;
+padding: 12px 16px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+color: var(--text-muted);
+font-size: 14px;
+cursor: pointer;
+}
+
+/* Sub-secciones internas (Digipak, Alianzas, Descubre) */
+.section-title { font-size: 20px; font-weight: 800; margin-bottom: 12px; }
+.sub-label { font-size: 12px; color: var(--lime); font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin: 10px 0 8px; }
+
+.movie-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 10px;
+}
+.movie-card {
+background: var(--card-bg);
+border: 1px solid var(--glass-border);
+border-radius: 16px;
+padding: 8px;
+position: relative;
+}
+.movie-poster {
+height: 115px;
+border-radius: 10px;
+background-size: cover;
+background-position: center;
+margin-bottom: 8px;
+position: relative;
+}
+.rank-num {
+position: absolute;
+top: -6px;
+left: -4px;
+font-size: 32px;
+font-weight: 900;
+color: var(--lime);
+text-shadow: 0 2px 10px #000;
+}
+.movie-name { font-size: 12px; font-weight: 700; }
+.movie-meta { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+/* Tarjetas de Alianzas / Planes Disney+ */
+.partner-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 10px;
+margin-bottom: 14px;
+}
+.partner-card {
+height: 95px;
+border-radius: 18px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-weight: 900;
+font-size: 20px;
+cursor: pointer;
+border: 1px solid var(--glass-border);
+transition: transform 0.2s;
+}
+.partner-card:hover { transform: scale(1.03); border-color: var(--lime); }
+
+.plan-box {
+background: rgba(255,255,255,0.06);
+border: 1px solid var(--glass-border);
+border-radius: 16px;
+padding: 14px;
+margin-bottom: 10px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+}
+.plan-box.highlight {
+background: var(--lime);
+color: #000;
+font-weight: 800;
+}
+
+/* Home Indicator */
+.home-indicator {
+position: absolute;
+bottom: 8px;
+left: 50%;
+transform: translateX(-50%);
+width: 130px;
+height: 5px;
+background: rgba(255,255,255,0.35);
+border-radius: 10px;
+z-index: 200;
+cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<!-- Barra discreta de estudio para grabar -->
+<div class="studio-bar">
+<button class="studio-btn" onclick="toggleTilt()">Vista 3D Apple</button>
+<button class="studio-btn" onclick="goView('view-home')">1. Inicio OS</button>
+<button class="studio-btn" onclick="openControlCenter()">2. Centro Control</button>
+<button class="studio-btn" onclick="startScan()">3. Escaneo IA</button>
+<button class="studio-btn" onclick="goView('view-main')">4. App CATCH</button>
+</div>
+
+<!-- Marco Smartphone -->
+<div class="phone-chassis" id="phone">
+<div class="phone-screen">
+
+<!-- Barra de Estado + Dynamic Island -->
+<div class="status-bar" onclick="openControlCenter()" title="Clic para abrir Centro de Control">
+<span>10:52</span>
+<div class="dynamic-island" id="island">
+<span class="island-text" id="island-msg">CATCH IA • Escuchando...</span>
+</div>
+<span>5G 100%</span>
+</div>
+
+<!-- VISTA 1: PANTALLA DE INICIO DEL TELÉFONO -->
+<div class="view home-os active" id="view-home">
+<div class="os-clock">
+<h1>10:52</h1>
+<p>Lunes, 19 de octubre • 21°C</p>
+<div class="os-hint" onclick="openControlCenter()">
+↓ Desliza o toca aquí para Centro de Control
+</div>
+</div>
+
+<div class="app-grid">
+<div class="app-icon-wrap">
+<div class="app-icon" style="background:#1877F2;">f</div>
+<span class="app-label">Facebook</span>
+</div>
+<div class="app-icon-wrap">
+<div class="app-icon" style="background:linear-gradient(45deg,#f09433,#dc2743,#bc1888);">IG</div>
+<span class="app-label">Instagram</span>
+</div>
+<div class="app-icon-wrap" onclick="startScan()">
+<div class="app-icon" style="background:#000; border:1px solid #333;">♪</div>
+<span class="app-label">TikTok</span>
+</div>
+<div class="app-icon-wrap" onclick="openSplashToMain()">
+<div class="app-icon icon-catch">
+<svg width="34" height="22" viewBox="0 0 60 36" fill="none">
+<path d="M4 18C11 6 21 3 30 3C39 3 49 6 56 18C49 30 39 33 30 33C21 33 11 30 4 18Z" stroke="#A020F0" stroke-width="5"/>
+<circle cx="30" cy="18" r="8" stroke="#A020F0" stroke-width="4.5"/>
+</svg>
+</div>
+<span class="app-label" style="color:var(--lime); font-weight:700;">CATCH</span>
+</div>
+</div>
+</div>
+
+<!-- VISTA 2: CENTRO DE CONTROL + MENÚ RADIAL -->
+<div class="view control-center" id="view-cc">
+<div class="cc-header">
+<div>
+<h2 style="font-size:22px; font-weight:800;">Centro de Control</h2>
+<p style="font-size:12px; color:var(--text-muted);">Toca el ícono de CATCH</p>
+</div>
+<button class="icon-btn" onclick="goView('view-home')">✕</button>
+</div>
+
+<div class="cc-grid">
+<div class="cc-tile active-blue">Wi-Fi</div>
+<div class="cc-tile active-blue">BT</div>
+<div class="cc-tile">🔦</div>
+<div class="cc-tile">🌙</div>
+<div class="cc-tile">📷</div>
+<div class="cc-tile">📍</div>
+<div class="cc-tile catch-trigger" onclick="toggleRadial()" title="Activar CATCH">
+<svg width="32" height="20" viewBox="0 0 60 36" fill="none">
+<path d="M4 18C11 6 21 3 30 3C39 3 49 6 56 18C49 30 39 33 30 33C21 33 11 30 4 18Z" stroke="#A020F0" stroke-width="5"/>
+<circle cx="30" cy="18" r="8" stroke="#A020F0" stroke-width="4.5"/>
+</svg>
+</div>
+<div class="cc-tile">🔇</div>
+</div>
+
+<!-- Menú Radial Flotante -->
+<div class="radial-stage" id="radial-stage">
+<div class="radial-option opt-1" onclick="startScan()">
+<span>📷</span>
+<span>Imagen</span>
+</div>
+<div class="radial-option opt-2" onclick="startScan()">
+<span>🎬</span>
+<span>Pantalla</span>
+</div>
+<div class="radial-option opt-3" onclick="startScan()">
+<span>🎙️</span>
+<span>Audio</span>
+</div>
+<div class="radial-hub" onclick="toggleRadial()">
+<svg width="44" height="28" viewBox="0 0 60 36" fill="none">
+<path d="M4 18C11 6 21 3 30 3C39 3 49 6 56 18C49 30 39 33 30 33C21 33 11 30 4 18Z" stroke="#A020F0" stroke-width="5"/>
+<circle cx="30" cy="18" r="8" stroke="#A020F0" stroke-width="4.5"/>
+</svg>
+</div>
+<p style="margin-top:24px; font-size:12px; color:var(--text-muted);" id="radial-hint">
+Presiona el ojo para desplegar modos IA
+</p>
+</div>
+</div>
+
+<!-- VISTA 3: SPLASH SCREEN -->
+<div class="view splash-view" id="view-splash">
+<div class="splash-logo">
+<div style="width:96px; height:96px; border-radius:50%; background:var(--lime); display:flex; align-items:center; justify-content:center; margin:0 auto 16px; box-shadow:0 0 50px rgba(0,0,0,0.4);">
+<svg width="56" height="36" viewBox="0 0 60 36" fill="none">
+<path d="M4 18C11 6 21 3 30 3C39 3 49 6 56 18C49 30 39 33 30 33C21 33 11 30 4 18Z" stroke="#A020F0" stroke-width="5"/>
+<circle cx="30" cy="18" r="8" stroke="#A020F0" stroke-width="4.5"/>
+</svg>
+</div>
+<h1 style="font-size:32px; font-weight:900; font-style:italic; letter-spacing:2px;">CATCH</h1>
+</div>
+</div>
+
+<!-- VISTA 4: ESCANEO IA EN VIVO + RESULTADO -->
+<div class="view scan-view" id="view-scan">
+<div class="video-feed-mock">
+<div style="display:flex; justify-content:space-between; align-items:center;">
+<span style="background:rgba(0,0,0,0.6); padding:5px 12px; border-radius:20px; font-size:11px; border:1px solid var(--glass-border);">
+@clip_viral • TikTok
+</span>
+<button class="icon-btn" onclick="goView('view-main')">✕</button>
+</div>
+
+<div class="scan-overlay" id="scan-graphics">
+<div class="radar-box">
+<svg width="46" height="28" viewBox="0 0 60 36" fill="none">
+<path d="M4 18C11 6 21 3 30 3C39 3 49 6 56 18C49 30 39 33 30 33C21 33 11 30 4 18Z" stroke="#B8FF00" stroke-width="4"/>
+<circle cx="30" cy="18" r="8" stroke="#A020F0" stroke-width="4"/>
+</svg>
+</div>
+<div class="waveform">
+<div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+<div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+<div class="wave-bar"></div>
+</div>
+<p id="scan-status" style="font-size:14px; font-weight:700; color:var(--lime); letter-spacing:0.5px;">
+Estoy oyendo • Buscando similitudes...
+</p>
+</div>
+
+<!-- Tarjeta de Resultado Match -->
+<div class="match-card" id="match-card">
+<div class="match-row">
+<div class="match-badge">
+<svg width="28" height="18" viewBox="0 0 60 36" fill="none">
+<path d="M4 18C11 6 21 3 30 3C39 3 49 6 56 18C49 30 39 33 30 33C21 33 11 30 4 18Z" stroke="#A020F0" stroke-width="5"/>
+<circle cx="30" cy="18" r="8" stroke="#A020F0" stroke-width="4.5"/>
+</svg>
+</div>
+<div>
+<p style="font-size:12px; color:var(--text-muted);">Estás viendo</p>
+<h3 style="font-size:18px; font-weight:800;">“El Gato con Botas”</h3>
+</div>
+</div>
+<button class="cta-rent" onclick="goView('view-alianzas')">
+<span>VER EN</span>
+<span class="platform-pill">HBO MAX</span>
+<span>$1.990</span>
+</button>
+</div>
+</div>
+</div>
+
+<!-- VISTA 5: MENÚ PRINCIPAL (BENTO GRID) -->
+<div class="view app-shell" id="view-main">
+<div class="app-topbar">
+<button class="icon-btn">☰</button>
+<span style="font-weight:900; letter-spacing:1px; color:var(--lime);">CATCH</span>
+<button class="icon-btn" onclick="goView('view-home')">👤</button>
+</div>
+
+<div class="bento-grid">
+<div class="bento-card bento-digipak" onclick="goView('view-digipak')">
+<span class="bento-title">Digipak</span>
+<span style="font-size:11px; color:#e4e4e7;">2 rentadas • Guardadas</span>
+</div>
+<div class="bento-card bento-alianzas" onclick="goView('view-alianzas')">
+<span class="bento-title">Alianzas</span>
+<div class="mini-logos">
+<div class="mini-dot">D+</div>
+<div class="mini-dot">HBO</div>
+<div class="mini-dot">♪</div>
+<div class="mini-dot">IG</div>
+</div>
+</div>
+<div class="bento-card bento-busquedas" onclick="goView('view-busquedas')">
+<span class="bento-title">Búsquedas</span>
+<span style="font-size:11px; color:#e4e4e7;">Historial reciente</span>
+</div>
+<div class="bento-card bento-descubre" onclick="goView('view-descubre')">
+<span class="bento-title">Descubre</span>
+<span style="font-size:11px; color:#fff; font-weight:600;">Top tendencias 🔥</span>
+</div>
+</div>
+
+<div class="quick-actions">
+<div class="qa-pill" onclick="startScan()">🖼️ Imagen</div>
+<div class="qa-pill" onclick="startScan()">🎙️ Audio</div>
+<div class="qa-pill" onclick="startScan()">🎬 Video</div>
+<div class="qa-pill catch-main-btn" onclick="startScan()">CATCH IA</div>
+</div>
+
+<div class="search-bar" onclick="goView('view-busquedas')">
+<span>Buscar película o escena...</span>
+<span style="color:var(--lime); font-weight:800;">⌕</span>
+</div>
+</div>
+
+<!-- VISTA 6: DIGIPAK -->
+<div class="view app-shell" id="view-digipak">
+<div class="app-topbar">
+<button class="icon-btn" onclick="goView('view-main')">←</button>
+<span class="section-title" style="margin:0;">Digipak</span>
+<button class="icon-btn">👤</button>
+</div>
+
+<p class="sub-label">Por ver (Rentadas)</p>
+<div class="movie-grid">
+<div class="movie-card">
+<div class="movie-poster" style="background-image:url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=300&q=80');"></div>
+<div class="movie-name">Avatar</div>
+<div class="movie-meta" style="color:var(--lime);">Quedan 3 días</div>
+</div>
+<div class="movie-card">
+<div class="movie-poster" style="background-image:url('https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=300&q=80');"></div>
+<div class="movie-name">Thor</div>
+<div class="movie-meta" style="color:var(--lime);">Queda 1 día</div>
+</div>
+</div>
+
+<p class="sub-label" style="margin-top:16px;">Guardadas</p>
+<div class="movie-grid">
+<div class="movie-card">
+<div class="movie-poster" style="background-image:url('https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=300&q=80');"></div>
+<div class="movie-name">2001: Odisea</div>
+<div class="movie-meta">Arrendar $1.990</div>
+</div>
+<div class="movie-card">
+<div class="movie-poster" style="background-image:url('https://images.unsplash.com/photo-1509347528160-9a9e33742cdb?auto=format&fit=crop&w=300&q=80');"></div>
+<div class="movie-name">Alien</div>
+<div class="movie-meta">Guardada</div>
+</div>
+</div>
+</div>
+
+<!-- VISTA 7: ALIANZAS Y PLANES -->
+<div class="view app-shell" id="view-alianzas">
+<div class="app-topbar">
+<button class="icon-btn" onclick="goView('view-main')">←</button>
+<span class="section-title" style="margin:0;">Alianzas</span>
+<button class="icon-btn">👤</button>
+</div>
+
+<p class="sub-label">Dónde arrendar</p>
+<div class="partner-grid">
+<div class="partner-card" style="background:#000;">HBO</div>
+<div class="partner-card" style="background:linear-gradient(135deg,#040714,#0c2b5e);">Disney+</div>
+</div>
+
+<p class="sub-label">Planes integrados (CLP)</p>
+<div class="plan-box highlight">
+<div>
+<div style="font-size:14px;">Película individual</div>
+<div style="font-size:11px; opacity:0.8;">Acceso 48 hrs inmediato</div>
+</div>
+<div style="font-size:18px;">$1.990</div>
+</div>
+<div class="plan-box">
+<div>
+<div style="font-size:14px; font-weight:700;">Plan mensual Estándar</div>
+<div style="font-size:11px; color:var(--text-muted);">Catálogo completo</div>
+</div>
+<div style="font-size:16px; font-weight:700;">$8.990</div>
+</div>
+<div class="plan-box">
+<div>
+<div style="font-size:14px; font-weight:700;">Plan mensual Premium 4K</div>
+<div style="font-size:11px; color:var(--text-muted);">4 pantallas simultáneas</div>
+</div>
+<div style="font-size:16px; font-weight:700;">$15.990</div>
+</div>
+</div>
+
+<!-- VISTA 8: DESCUBRE (TOP LO MÁS BUSCADO) -->
+<div class="view app-shell" id="view-descubre">
+<div class="app-topbar">
+<button class="icon-btn" onclick="goView('view-main')">←</button>
+<span class="section-title" style="margin:0;">Descubre</span>
+<button class="icon-btn">👤</button>
+</div>
+<p class="sub-label">Lo más buscado hoy</p>
+<div class="movie-grid">
+<div class="movie-card">
+<span class="rank-num">1</span>
+<div class="movie-poster" style="background-image:url('https://images.unsplash.com/photo-1509347528160-9a9e33742cdb?auto=format&fit=crop&w=300&q=80');"></div>
+<div class="movie-name">Dune: Part III</div>
+<div class="movie-meta">Hace 5 horas</div>
+</div>
+<div class="movie-card">
+<span class="rank-num">2</span>
+<div class="movie-poster" style="background-image:url('https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=300&q=80');"></div>
+<div class="movie-name">Amanecer en la Cosecha</div>
+<div class="movie-meta">Tendencia #2</div>
+</div>
+<div class="movie-card">
+<span class="rank-num">3</span>
+<div class="movie-poster" style="background-image:url('https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?auto=format&fit=crop&w=300&q=80');"></div>
+<div class="movie-name">Avengers: Doomsday</div>
+<div class="movie-meta">Hace 2 días</div>
+</div>
+<div class="movie-card">
+<span class="rank-num">4</span>
+<div class="movie-poster" style="background-image:url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=300&q=80');"></div>
+<div class="movie-name">Wildwood</div>
+<div class="movie-meta">Hace 3 días</div>
+</div>
+</div>
+</div>
+
+<!-- VISTA 9: BÚSQUEDAS -->
+<div class="view app-shell" id="view-busquedas">
+<div class="app-topbar">
+<button class="icon-btn" onclick="goView('view-main')">←</button>
+<span class="section-title" style="margin:0;">Búsquedas</span>
+<button class="icon-btn">👤</button>
+</div>
+<p class="sub-label">Búsquedas pasadas</p>
+<div class="movie-grid">
+<div class="movie-card">
+<div class="movie-poster" style="background-image:url('https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=300&q=80');"></div>
+<div class="movie-name">Garfield: La Película</div>
+<div class="movie-meta">Hace 5 horas • $1.990</div>
+</div>
+<div class="movie-card">
+<div class="movie-poster" style="background-image:url('https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=300&q=80');"></div>
+<div class="movie-name">Superman Returns</div>
+<div class="movie-meta">Hace 2 días</div>
+</div>
+</div>
+</div>
+
+<!-- Barra inferior tipo iOS -->
+<div class="home-indicator" onclick="goView('view-home')" title="Volver al inicio"></div>
+</div>
+</div>
+
+<script>
+let scanTimer = null;
+
+function goView(id) {
+document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+const target = document.getElementById(id);
+if (target) target.classList.add('active');
+
+// Reset Dynamic Island
+const island = document.getElementById('island');
+island.classList.remove('active');
+}
+
+function toggleTilt() {
+document.getElementById('phone').classList.toggle('tilted');
+}
+
+function openControlCenter() {
+goView('view-cc');
+setTimeout(() => {
+document.getElementById('radial-stage').classList.add('open');
+document.getElementById('radial-hint').innerText = 'Elige Imagen, Pantalla o Audio';
+}, 350);
+}
+
+function toggleRadial() {
+const stage = document.getElementById('radial-stage');
+stage.classList.toggle('open');
+}
+
+function openSplashToMain() {
+goView('view-splash');
+setTimeout(() => {
+goView('view-main');
+}, 1100);
+}
+
+function startScan() {
+clearTimeout(scanTimer);
+goView('view-scan');
+
+const matchCard = document.getElementById('match-card');
+const scanStatus = document.getElementById('scan-status');
+const island = document.getElementById('island');
+const islandMsg = document.getElementById('island-msg');
+
+matchCard.classList.remove('revealed');
+scanStatus.innerText = 'Estoy oyendo • Analizando fotogramas...';
+
+island.classList.add('active');
+islandMsg.innerText = 'CATCH IA • Escaneando clip...';
+
+scanTimer = setTimeout(() => {
+scanStatus.innerText = '¡Coincidencia encontrada al 99.4%!';
+islandMsg.innerText = '✓ Match: El Gato con Botas';
+matchCard.classList.add('revealed');
+}, 2400);
+}
+</script>
+</body>
+</html>
